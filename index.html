@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<meta charset='utf-8'>
+
+<head>
+	<title></title>
+	<style>
+		#interface {
+			display: block;
+			position: absolute;
+			z-index: 9;
+			background-color: #FFFFFF;
+			padding: 10px 10px 10px 15px;
+			border-radius: 5px;
+			font-size: 13px;
+			font-weight: bold;
+			opacity: 0.9;
+		}
+	</style>
+</head>
+
+<body>
+	<div id="interface" onmouseout="mouseOverInterface(false);" onmouseover="mouseOverInterface(true);">
+		<select onchange="setPositionText(this.value);">
+			<option value="seoul">서울</option>
+			<option value="sejong">세종</option>
+			<option value="gangwon">강원</option>
+			<option value="incheon">인천</option>
+			<option value="gyeongi">경기</option>
+			<option value="chungbuk">충북</option>
+			<option value="chungnam">충남</option>
+			<option value="gyeongbuk">경북</option>
+			<option value="daejeon">대전</option>
+			<option value="daegu">대구</option>
+			<option value="jeonbuk">전북</option>
+			<option value="gyeongnam">경남</option>
+			<option value="ulsan">울산</option>
+			<option value="gwangju">광주</option>
+			<option value="busan">부산</option>
+			<option value="jeonnam">전남</option>
+			<option value="jeju">제주</option>
+		</select>
+		<table>
+			<tr>
+				<td>
+					<span>경도</span>
+				</td>
+				<td>
+					<input type="text" id="longitude" value="126.92836647767662">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span>위도</span>
+				</td>
+				<td>
+					<input type="text" id="latitude" value="37.52439503321471">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span>고도</span>
+				</td>
+				<td>
+					<input type="text" id="altitude" value="1000.0">
+				</td>
+			</tr>
+			<tr colspan="2">
+				<td>
+					<input type="button" value="이동" onclick="setCameraPosition();">
+				</td>
+			</tr>
+		</table>
+	</div>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<script>
+		function mouseOverInterface(_isOver) {
+			if (typeof Module == "object") {
+				Module.XDIsMouseOverDiv(_isOver);
+			}
+		}
+		window.onresize = function (e) {
+			if (typeof Module == 'object') {
+				if (typeof Module.Resize == 'function') {
+					Module.Resize(window.innerWidth, window.innerHeight);
+					Module.XDRenderData();
+				}
+			}
+		};
+		var script = document.createElement('script');
+		script.src = './init.js';
+		document.body.appendChild(script);
+	</script>
+</body>
+
+</html>
