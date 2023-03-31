@@ -5,21 +5,26 @@ function init() {
 	initPage();
 }
 
-// 지역명
-var region;
-
 var GLOBAL = {
 	Camera: null,
-	Graph: null
+	Graph: null,
+	population: null,
+	region: "busan"
 };
 
 // 년도 배열
 var year = [2017, 2018, 2019, 2020, 2021];
 
 /* 엔진 로드 후 실행할 초기화 함수(Module.postRun) */
-function init() {
-	var pop = getPopInfomation();
-	console.log("POP : " + pop);
+async function init() {
+	GLOBAL.population = await getPopInfomation();
+	console.log(GLOBAL.population);
+	console.log(GLOBAL.population[0]);
+	console.log(GLOBAL.population[1]);
+	console.log(GLOBAL.population[2]);
+	console.log(GLOBAL.population[3]);
+	console.log(GLOBAL.population[4]);
+	console.log(GLOBAL.population[0].get("busan"));
 
 	// 엔진 초기화
 	Module.Start(window.innerWidth, window.innerHeight);
@@ -40,55 +45,36 @@ function init() {
 }
 
 // API를 활용한 인구 정보 불러오기
-function getPopInfomation() {
-	let pop = new Map();
-	pop.set("seoul", []);
-	pop.set("busan", []);
-	pop.set("daegu", []);
-	pop.set("incheon", []);
-	pop.set("gwangju", []);
-	pop.set("daejeon", []);
-	pop.set("ulsan", []);
-	pop.set("sejong", []);
-	pop.set("gyeongi", []);
-	pop.set("gangwon", []);
-	pop.set("chungbuk", []);
-	pop.set("chungnam", []);
-	pop.set("jeonbuk", []);
-	pop.set("jeonnam", []);
-	pop.set("gyeongbuk", []);
-	pop.set("gyeongnam", []);
-	pop.set("jeju", []);
-	Promise.all([getPopByYear[year]]).then((values) => {
-		console.log(values);
-	});
-}
+async function getPopInfomation() {
+	return await Promise.all([getPopByYear(year[0]), getPopByYear(year[1]), getPopByYear(year[2]), getPopByYear(year[3]), getPopByYear(year[4])])
+};
 
 function getPopByYear(year) {
-	fetch("https://sgisapi.kostat.go.kr/OpenAPI3/stats/searchpopulation.json?accessToken=57c4bb76-2b83-44fa-8a55-e486146c627b&year=" + year + "")
+	return fetch("https://sgisapi.kostat.go.kr/OpenAPI3/stats/searchpopulation.json?accessToken=99eb12bc-40b1-4e97-98dd-000547a17669&year=" + year + "")
 		.then((resp) => resp.json())
 		.then((arr) => {
-			pop.get("seoul")[i] = arr.result[0].population;
-			pop.get("busan")[i] = arr.result[1].population;
-			pop.get("daegu")[i] = arr.result[2].population;
-			pop.get("incheon")[i] = arr.result[3].population;
-			pop.get("gwangju")[i] = arr.result[4].population;
-			pop.get("daejeon")[i] = arr.result[5].population;
-			pop.get("ulsan")[i] = arr.result[6].population;
-			pop.get("sejong")[i] = arr.result[6].population;
-			pop.get("gyeongi")[i] = arr.result[7].population;
-			pop.get("gangwon")[i] = arr.result[8].population;
-			pop.get("chungbuk")[i] = arr.result[9].population;
-			pop.get("chungnam")[i] = arr.result[10].population;
-			pop.get("jeonbuk")[i] = arr.result[11].population;
-			pop.get("jeonnam")[i] = arr.result[12].population;
-			pop.get("gyeongbuk")[i] = arr.result[13].population;
-			pop.get("gyeongnam")[i] = arr.result[14].population;
-			pop.get("jeju")[i] = arr.result[15].population;
 
-			return pop;
-		})
-		.then((pop) => console.log(pop));
+			return new Map([
+				['year', year],
+				['seoul', parseInt(arr.result[0].population)],
+				['busan', parseInt(arr.result[1].population)],
+				['daegu', parseInt(arr.result[2].population)],
+				['incheon', parseInt(arr.result[3].population)],
+				['gwangju', parseInt(arr.result[4].population)],
+				['daejeon', parseInt(arr.result[5].population)],
+				['ulsan', parseInt(arr.result[6].population)],
+				['sejong', parseInt(arr.result[7].population)],
+				['gyeongi', parseInt(arr.result[8].population)],
+				['gangwon', parseInt(arr.result[9].population)],
+				['chungbuk', parseInt(arr.result[10].population)],
+				['chungnam', parseInt(arr.result[11].population)],
+				['jeonbuk', parseInt(arr.result[12].population)],
+				['jeonnam', parseInt(arr.result[13].population)],
+				['gyeongbuk', parseInt(arr.result[14].population)],
+				['gyeongnam', parseInt(arr.result[15].population)],
+				['jeju', parseInt(arr.result[16].population)]
+			]);
+		});
 }
 
 /* 그래프 생성 */
@@ -97,7 +83,7 @@ function createGraph() {
 	var graph = Module.createBarGraph("Graph");
 
 	// 범례 추가
-	graph.insertLegend("Legend1", "Population(" + region + ")", new Module.JSColor(200, 255, 255, 255));
+	graph.insertLegend("Legend1", "Population(" + GLOBAL.region + ")", new Module.JSColor(200, 255, 255, 255));
 
 	/* 데이터 추가 */
 	// 데이터 셋 리스트 (데이터 순서는 범례 추가 순서를 따르며 데이터와 범례는 1:1 대응)
@@ -105,27 +91,27 @@ function createGraph() {
 		{
 			// 첫번째 데이터 셋 
 			FieldName: "2017년",			// 데이터 셋의 명칭
-			Data: [22]
+			Data: [GLOBAL.population[0].get("busan")]
 		},
 		{
 			// 두번째 데이터 셋 
 			FieldName: "2018년",
-			Data: [22]
+			Data: [GLOBAL.population[1].get("busan")]
 		},
 		{
 			// 세번째 데이터 셋
 			FieldName: "2019년",
-			Data: [22]
+			Data: [GLOBAL.population[2].get("busan")]
 		},
 		{
 			// 네번째 데이터 셋
 			FieldName: "2020년",
-			Data: [22]
+			Data: [GLOBAL.population[3].get("busan")]
 		},
 		{
 			// 다섯번째 데이터 셋
 			FieldName: "2021년",
-			Data: [22]
+			Data: [GLOBAL.population[4].get("busan")]
 		}
 	];
 
@@ -171,8 +157,7 @@ function setGraphBackground(_bVisible) {
 
 /* 장소 별 경위도, 고도 설정 */
 function setPositionText(_positionType) {
-	console.log(_positionType);
-	region = _positionType;
+	GLOBAL.region = _positionType;
 	// 지정된 위치에 따른 경위도, 고도 텍스트 설정
 	switch (_positionType) {
 		case 'seoul':
