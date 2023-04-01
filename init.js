@@ -9,22 +9,16 @@ var GLOBAL = {
 	Camera: null,
 	Graph: null,
 	population: null,
-	region: "busan"
+	region: "busan",
+	acceseToken: null,
+	layer: null,
+	year: [2017, 2018, 2019, 2020, 2021]
 };
-
-// 년도 배열
-var year = [2017, 2018, 2019, 2020, 2021];
 
 /* 엔진 로드 후 실행할 초기화 함수(Module.postRun) */
 async function init() {
+	GLOBAL.acceseToken = await getAccessToken();
 	GLOBAL.population = await getPopInfomation();
-	console.log(GLOBAL.population);
-	console.log(GLOBAL.population[0]);
-	console.log(GLOBAL.population[1]);
-	console.log(GLOBAL.population[2]);
-	console.log(GLOBAL.population[3]);
-	console.log(GLOBAL.population[4]);
-	console.log(GLOBAL.population[0].get("busan"));
 
 	// 엔진 초기화
 	Module.Start(window.innerWidth, window.innerHeight);
@@ -33,27 +27,43 @@ async function init() {
 	GLOBAL.Camera = Module.getViewCamera();
 
 	// 카메라 초기 위치 설정
-	GLOBAL.Camera.move(new Module.JSVector3D(129.128265, 35.171834, 1000.0), 30.0, 0.0, 10);
+	GLOBAL.Camera.move(new Module.JSVector3D(129.12263821366713, 35.178739294057365, 1000.0), 30.0, 0.0, 10);
 
 	// 그래프 오브젝트 타입 레이어 생성
 	var layerList = new Module.JSLayerList(true);
-	var layer = layerList.createLayer("LAYER_GRAPH", Module.ELT_GRAPH);
+	GLOBAL.layer = layerList.createLayer("LAYER_GRAPH", Module.ELT_GRAPH);
 
 	// 그래프 생성
-	GLOBAL.Graph = createGraph();
-	layer.addObject(GLOBAL.Graph, 0);
+	GLOBAL.Graph = createGraph(129.12263821366713, 35.178739294057365 + 0.01);
+	GLOBAL.layer.addObject(GLOBAL.Graph, 0);
+}
+
+// acceseToken 불러오기
+async function getAccessToken() {
+	var response = await jQuery.ajax({
+		type: 'GET',
+		url: 'https://sgisapi.kostat.go.kr/OpenAPI3/auth/authentication.json',
+		data: {
+			consumer_key: 'b2edafe7152a484a89a8',
+			consumer_secret: 'a1be9e0165914152b296',
+		},
+		success: function (data) {
+			var accessToken = data.result.accessToken;
+			return accessToken;
+		}
+	});
+	return response.result.accessToken;
 }
 
 // API를 활용한 인구 정보 불러오기
 async function getPopInfomation() {
-	return await Promise.all([getPopByYear(year[0]), getPopByYear(year[1]), getPopByYear(year[2]), getPopByYear(year[3]), getPopByYear(year[4])])
+	return await Promise.all([getPopByYear(GLOBAL.year[0]), getPopByYear(GLOBAL.year[1]), getPopByYear(GLOBAL.year[2]), getPopByYear(GLOBAL.year[3]), getPopByYear(GLOBAL.year[4])])
 };
 
 function getPopByYear(year) {
-	return fetch("https://sgisapi.kostat.go.kr/OpenAPI3/stats/searchpopulation.json?accessToken=99eb12bc-40b1-4e97-98dd-000547a17669&year=" + year + "")
+	return fetch("https://sgisapi.kostat.go.kr/OpenAPI3/stats/searchpopulation.json?accessToken=" + GLOBAL.acceseToken + "&year=" + year + "")
 		.then((resp) => resp.json())
 		.then((arr) => {
-
 			return new Map([
 				['year', year],
 				['seoul', parseInt(arr.result[0].population)],
@@ -78,42 +88,28 @@ function getPopByYear(year) {
 }
 
 /* 그래프 생성 */
-function createGraph() {
+function createGraph(longitude, latitude) {
 	// 그래프 오브젝트 생성
 	var graph = Module.createBarGraph("Graph");
 
 	// 범례 추가
-	graph.insertLegend("Legend1", "Population(" + GLOBAL.region + ")", new Module.JSColor(200, 255, 255, 255));
+	graph.insertLegend("Legend1", `Population(${GLOBAL.region})`, new Module.JSColor(200, 255, 255, 255));
 
 	/* 데이터 추가 */
 	// 데이터 셋 리스트 (데이터 순서는 범례 추가 순서를 따르며 데이터와 범례는 1:1 대응)
-	var dataSetList = [
-		{
-			// 첫번째 데이터 셋 
-			FieldName: "2017년",			// 데이터 셋의 명칭
-			Data: [GLOBAL.population[0].get("busan")]
-		},
-		{
-			// 두번째 데이터 셋 
-			FieldName: "2018년",
-			Data: [GLOBAL.population[1].get("busan")]
-		},
-		{
-			// 세번째 데이터 셋
-			FieldName: "2019년",
-			Data: [GLOBAL.population[2].get("busan")]
-		},
-		{
-			// 네번째 데이터 셋
-			FieldName: "2020년",
-			Data: [GLOBAL.population[3].get("busan")]
-		},
-		{
-			// 다섯번째 데이터 셋
-			FieldName: "2021년",
-			Data: [GLOBAL.population[4].get("busan")]
-		}
-	];
+	var dataSetList = [];
+
+	for (var i = 0; i < 5; i++) {
+		var fieldName = (2017 + i) + '년';
+		var data = [GLOBAL.population[i].get(GLOBAL.region) / 100000];
+
+		var dataSet = {
+			FieldName: fieldName,
+			Data: data
+		};
+
+		dataSetList.push(dataSet);
+	}
 
 	// 그래프 객체에 데이터 추가
 	for (var i = 0, len = dataSetList.length; i < len; i++) {
@@ -133,11 +129,14 @@ function createGraph() {
 	// 그래프 y축 최대, 최소 값 범위 설정
 	graph.setValueRange(0.0, 100.0, 10.0);
 
+	// 단위 표시 텍스트 설정
+	graph.setUnitText("[단위 : 명/10만명]");
+
 	// 바 상승 애니메이션 속도 설정
 	graph.setAnimationSpeed(0.1);
 
 	// 그래프 생성
-	graph.create(new Module.JSVector3D(129.12263821366713, 35.178739294057365, 50.0),
+	graph.create(new Module.JSVector3D(longitude, latitude , 100),
 		new Module.JSSize2D(600, 500), 0);
 
 	return graph;
@@ -163,114 +162,115 @@ function setPositionText(_positionType) {
 		case 'seoul':
 			document.getElementById("longitude").value = "126.92836647767662";
 			document.getElementById("latitude").value = "37.52439503321471";
-			document.getElementById("altitude").value = "50000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'sejong':
 			document.getElementById("longitude").value = "127.2494855";
 			document.getElementById("latitude").value = "36.5040736";
-			document.getElementById("altitude").value = "10000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'gangwon':
 			document.getElementById("longitude").value = "127.72981975694272";
 			document.getElementById("latitude").value = "37.885309626470516";
-			document.getElementById("altitude").value = "50000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'incheon':
 			document.getElementById("longitude").value = "126.7052062";
 			document.getElementById("latitude").value = "37.4562557";
-			document.getElementById("altitude").value = "50000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'gyeongi':
 			document.getElementById("longitude").value = "127.05351636119418";
 			document.getElementById("latitude").value = "37.28886826458665";
-			document.getElementById("altitude").value = "50000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'chungbuk':
 			document.getElementById("longitude").value = "127.49148710756499";
 			document.getElementById("latitude").value = "36.63538195305526";
-			document.getElementById("altitude").value = "50000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'chungnam':
 			document.getElementById("longitude").value = "126.67270842023537";
 			document.getElementById("latitude").value = "36.6587222831924";
-			document.getElementById("altitude").value = "50000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'gyeongbuk':
 			document.getElementById("longitude").value = "128.50582431682523";
 			document.getElementById("latitude").value = "36.576021138531104";
-			document.getElementById("altitude").value = "50000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'daejeon':
 			document.getElementById("longitude").value = "127.38483458064697";
 			document.getElementById("latitude").value = "36.35048482967665";
-			document.getElementById("altitude").value = "50000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'daegu':
 			document.getElementById("longitude").value = "128.6061273549514";
 			document.getElementById("latitude").value = "35.87310069909742";
-			document.getElementById("altitude").value = "10000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'jeonbuk':
 			document.getElementById("longitude").value = "127.10895998268158";
 			document.getElementById("latitude").value = "35.82010084553171";
-			document.getElementById("altitude").value = "50000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'jeonnam':
 			document.getElementById("longitude").value = "126.462797884342";
 			document.getElementById("latitude").value = "34.81595779732931";
-			document.getElementById("altitude").value = "50000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'gyeongnam':
 			document.getElementById("longitude").value = "128.69195424226638";
 			document.getElementById("latitude").value = "35.23767968213337";
-			document.getElementById("altitude").value = "50000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'ulsan':
 			document.getElementById("longitude").value = "129.3114744963032";
 			document.getElementById("latitude").value = "35.53894382583284";
-			document.getElementById("altitude").value = "50000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'gwangju':
 			document.getElementById("longitude").value = "126.85166293522462";
 			document.getElementById("latitude").value = "35.16007495961763";
-			document.getElementById("altitude").value = "50000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'gwangju':
 			document.getElementById("longitude").value = "126.85166293522462";
 			document.getElementById("latitude").value = "35.16007495961763";
-			document.getElementById("altitude").value = "50000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'busan':
-			document.getElementById("longitude").value = "129.128265";
-			document.getElementById("latitude").value = "35.171834";
-			document.getElementById("altitude").value = "10000.0";
+			document.getElementById("longitude").value = "129.12263821366713";
+			document.getElementById("latitude").value = "35.178739294057365";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 		case 'jeju':
 			document.getElementById("longitude").value = "126.49823771803996";
 			document.getElementById("latitude").value = "33.488830032800486";
-			document.getElementById("altitude").value = "50000.0";
+			document.getElementById("altitude").value = "1000.0";
 			break;
 	}
 }
 
 /* 카메라 위치 이동 */
 function setCameraPosition() {
-
 	if (GLOBAL.Camera == null) {
 		return;
 	}
-
+	
 	// 경위도, 고도 좌표 값 받아오기
 	var longitude = parseFloat(document.getElementById("longitude").value);
 	var latitude = parseFloat(document.getElementById("latitude").value);
 	var altitude = parseFloat(document.getElementById("altitude").value);
 
+	GLOBAL.Graph = createGraph(longitude, latitude + 0.01, altitude);
+	GLOBAL.layer.addObject(GLOBAL.Graph, 0);
 	if (isNaN(longitude) || isNaN(latitude) || isNaN(altitude)) {
 		return;
 	}
 
 	// 카메라 이동 실행
-	GLOBAL.Camera.setTilt(45.0);
+	GLOBAL.Camera.setTilt(30.0);
 	GLOBAL.Camera.setLocation(new Module.JSVector3D(longitude, latitude, altitude));
 }
 
