@@ -7,7 +7,6 @@ function init() {
 
 var GLOBAL = {
 	Camera: null,
-	Graph: null,
 	population: null,
 	region: "busan",
 	acceseToken: null,
@@ -34,8 +33,8 @@ async function init() {
 	GLOBAL.layer = layerList.createLayer("LAYER_GRAPH", Module.ELT_GRAPH);
 
 	// 그래프 생성
-	GLOBAL.Graph = createGraph(129.12263821366713, 35.178739294057365 + 0.01);
-	GLOBAL.layer.addObject(GLOBAL.Graph, 0);
+	let Graph = createGraph(129.12263821366713, 35.178739294057365 + 0.01);
+	GLOBAL.layer.addObject(Graph, 0);
 }
 
 // acceseToken 불러오기
@@ -263,8 +262,8 @@ function setCameraPosition() {
 	var latitude = parseFloat(document.getElementById("latitude").value);
 	var altitude = parseFloat(document.getElementById("altitude").value);
 
-	GLOBAL.Graph = createGraph(longitude, latitude + 0.01, altitude);
-	GLOBAL.layer.addObject(GLOBAL.Graph, 0);
+	let Graph = createGraph(longitude, latitude + 0.01, altitude);
+	GLOBAL.layer.addObject(Graph, 0);
 	if (isNaN(longitude) || isNaN(latitude) || isNaN(altitude)) {
 		return;
 	}
