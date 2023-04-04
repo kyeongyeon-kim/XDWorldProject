@@ -26,4 +26,4 @@
 - 지역 선택으로 시점 변환
 - 해당 지역에 따른 인구 통계 시각화<br><br>
 
-<h2><a href="#">💌 더보기</a></h2><br><br>
+<h2><a href="https://yeon96.tistory.com/31">💌 더보기</a></h2><br><br>
