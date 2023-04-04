@@ -8,17 +8,20 @@ function init() {
 var GLOBAL = {
 	Camera: null,
 	population: null,
+	worker: null,
 	region: "busan",
 	acceseToken: null,
-	layer: null,
-	year: [2017, 2018, 2019, 2020, 2021]
+	graphLayer: null,
+	poiLayer: null,
+	poi: null,
+	year: [2016, 2017, 2018, 2019, 2020]
 };
 
 /* 엔진 로드 후 실행할 초기화 함수(Module.postRun) */
 async function init() {
 	GLOBAL.acceseToken = await getAccessToken();
-	GLOBAL.population = await getPopInfomation();
-
+	GLOBAL.population = await getPopInfomation([getPopByYear(GLOBAL.year[0]), getPopByYear(GLOBAL.year[1]), getPopByYear(GLOBAL.year[2]), getPopByYear(GLOBAL.year[3]), getPopByYear(GLOBAL.year[4])]);
+	GLOBAL.worker = await getPopInfomation([getWorkerByYear(GLOBAL.year[0]), getWorkerByYear(GLOBAL.year[1]), getWorkerByYear(GLOBAL.year[2]), getWorkerByYear(GLOBAL.year[3]), getWorkerByYear(GLOBAL.year[4])]);
 	// 엔진 초기화
 	Module.Start(window.innerWidth, window.innerHeight);
 
@@ -30,11 +33,26 @@ async function init() {
 
 	// 그래프 오브젝트 타입 레이어 생성
 	var layerList = new Module.JSLayerList(true);
-	GLOBAL.layer = layerList.createLayer("LAYER_GRAPH", Module.ELT_GRAPH);
+	GLOBAL.graphLayer = layerList.createLayer("LAYER_GRAPH", Module.ELT_GRAPH);
 
 	// 그래프 생성
 	let Graph = createGraph(129.12263821366713, 35.178739294057365 + 0.01);
-	GLOBAL.layer.addObject(Graph, 0);
+	GLOBAL.graphLayer.addObject(Graph, 0);
+
+	// point 요브젝트 생성
+	let position = new Module.JSVector3D(129.12263821366713 - 0.0055, 35.178739294057365 + 0.011, 300);
+	GLOBAL.poi = createPOI(position, {
+		text: "지역별\n인구 및 IT 종사자 추이\n2016 ~ 2020\n제작 : 김경연",
+		font: "Consolas",
+		fontSize: 20,
+		fontColor: "rgba(0, 0, 0, 1.0)",
+		backgroundColor: "rgba(255, 255, 255, 0.8)",
+		outlineColor: "rgba(200, 200, 0, 0.5)",
+		outlineWidth: 1,
+	});
+
+	GLOBAL.poiLayer = layerList.createLayer("POI_TEST", Module.ELT_3DPOINT);
+	GLOBAL.poiLayer.addObject(GLOBAL.poi, 0);
 }
 
 // acceseToken 불러오기
@@ -55,9 +73,36 @@ async function getAccessToken() {
 }
 
 // API를 활용한 인구 정보 불러오기
-async function getPopInfomation() {
-	return await Promise.all([getPopByYear(GLOBAL.year[0]), getPopByYear(GLOBAL.year[1]), getPopByYear(GLOBAL.year[2]), getPopByYear(GLOBAL.year[3]), getPopByYear(GLOBAL.year[4])])
-};
+async function getPopInfomation(funcs) {
+	return await Promise.all(funcs);
+}
+
+function getWorkerByYear(year) {
+	return fetch("https://sgisapi.kostat.go.kr/OpenAPI3/stats/company.json?accessToken=" + GLOBAL.acceseToken + "&year=" + year + "&class_code=J")
+		.then((resp) => resp.json())
+		.then((arr) => {
+			return new Map([
+				['year', year],
+				['seoul', parseInt(arr.result[0].tot_worker)],
+				['busan', parseInt(arr.result[1].tot_worker)],
+				['daegu', parseInt(arr.result[2].tot_worker)],
+				['incheon', parseInt(arr.result[3].tot_worker)],
+				['gwangju', parseInt(arr.result[4].tot_worker)],
+				['daejeon', parseInt(arr.result[5].tot_worker)],
+				['ulsan', parseInt(arr.result[6].tot_worker)],
+				['sejong', parseInt(arr.result[7].tot_worker)],
+				['gyeongi', parseInt(arr.result[8].tot_worker)],
+				['gangwon', parseInt(arr.result[9].tot_worker)],
+				['chungbuk', parseInt(arr.result[10].tot_worker)],
+				['chungnam', parseInt(arr.result[11].tot_worker)],
+				['jeonbuk', parseInt(arr.result[12].tot_worker)],
+				['jeonnam', parseInt(arr.result[13].tot_worker)],
+				['gyeongbuk', parseInt(arr.result[14].tot_worker)],
+				['gyeongnam', parseInt(arr.result[15].tot_worker)],
+				['jeju', parseInt(arr.result[16].tot_worker)]
+			]);
+		});
+}
 
 function getPopByYear(year) {
 	return fetch("https://sgisapi.kostat.go.kr/OpenAPI3/stats/searchpopulation.json?accessToken=" + GLOBAL.acceseToken + "&year=" + year + "")
@@ -93,22 +138,31 @@ function createGraph(longitude, latitude) {
 
 	// 범례 추가
 	graph.insertLegend("Legend1", `Population(${GLOBAL.region})`, new Module.JSColor(200, 255, 255, 255));
+	graph.insertLegend("Legend2", "IT 분야 종사자수", new Module.JSColor(200, 255, 255, 0));
 
 	/* 데이터 추가 */
 	// 데이터 셋 리스트 (데이터 순서는 범례 추가 순서를 따르며 데이터와 범례는 1:1 대응)
 	var dataSetList = [];
 
 	for (var i = 0; i < 5; i++) {
-		var fieldName = (2017 + i) + '년';
-		var data = [GLOBAL.population[i].get(GLOBAL.region) / 100000];
-
+		var fieldName = (2016 + i) + '년';
+		var populationData = GLOBAL.population[i].get(GLOBAL.region);
+		var workerData = GLOBAL.worker[i].get(GLOBAL.region);
 		var dataSet = {
 			FieldName: fieldName,
-			Data: data
+			Data: [populationData, workerData],
+
+			valueOf: function () {
+				return this.Data;
+			}
 		};
 
 		dataSetList.push(dataSet);
 	}
+	// data 최대값
+	var max = dataSetList.reduce(function (a, b) {
+		return Math.max(b.Data[0], b.Data[1]);
+	}, -Infinity);
 
 	// 그래프 객체에 데이터 추가
 	for (var i = 0, len = dataSetList.length; i < len; i++) {
@@ -121,21 +175,21 @@ function createGraph(longitude, latitude) {
 			data.add(dataSetList[i].Data[j]);
 		}
 
+
 		// 데이터 셋 명칭, 데이터 값으로 데이터 셋 입력
 		graph.insertDataSet(dataSetList[i].FieldName, data);
 	}
 
 	// 그래프 y축 최대, 최소 값 범위 설정
-	graph.setValueRange(0.0, 100.0, 10.0);
-
+	graph.setValueRange(0, Math.ceil(max / 1000000) * 1000000, 1000000);
 	// 단위 표시 텍스트 설정
-	graph.setUnitText("[단위 : 명/10만명]");
+	graph.setUnitText("[단위 : 명]");
 
 	// 바 상승 애니메이션 속도 설정
 	graph.setAnimationSpeed(0.1);
 
 	// 그래프 생성
-	graph.create(new Module.JSVector3D(longitude, latitude , 100),
+	graph.create(new Module.JSVector3D(longitude, latitude, 100),
 		new Module.JSSize2D(600, 500), 0);
 
 	return graph;
@@ -151,6 +205,41 @@ function setGraphBackground(_bVisible) {
 	GLOBAL.Graph.setGridVisible(_bVisible);
 
 	Module.XDRenderData();
+}
+
+/* 카메라 위치 이동 */
+function setCameraPosition() {
+	GLOBAL.graphLayer.removeAll();
+	GLOBAL.poiLayer.removeAll();
+	if (GLOBAL.Camera == null) {
+		return;
+	}
+
+	// 경위도, 고도 좌표 값 받아오기
+	var longitude = parseFloat(document.getElementById("longitude").value);
+	var latitude = parseFloat(document.getElementById("latitude").value);
+	var altitude = parseFloat(document.getElementById("altitude").value);
+
+	let Graph = createGraph(longitude, latitude + 0.01, altitude);
+	GLOBAL.graphLayer.addObject(Graph, 0);
+	let position = new Module.JSVector3D(longitude - 0.0055, latitude + 0.011, 300);
+	GLOBAL.poi = createPOI(position, {
+		text: "지역별\n인구 및 IT 종사자 추이\n2016 ~ 2020\n제작 : 김경연",
+		font: "Consolas",
+		fontSize: 20,
+		fontColor: "rgba(0, 0, 0, 1.0)",
+		backgroundColor: "rgba(255, 255, 255, 0.8)",
+		outlineColor: "rgba(200, 200, 0, 0.5)",
+		outlineWidth: 1,
+	});
+	GLOBAL.poiLayer.addObject(GLOBAL.poi, 0);
+	if (isNaN(longitude) || isNaN(latitude) || isNaN(altitude)) {
+		return;
+	}
+
+	// 카메라 이동 실행
+	GLOBAL.Camera.setTilt(30.0);
+	GLOBAL.Camera.setLocation(new Module.JSVector3D(longitude, latitude, altitude));
 }
 
 /* 장소 별 경위도, 고도 설정 */
@@ -251,26 +340,73 @@ function setPositionText(_positionType) {
 	}
 }
 
-/* 카메라 위치 이동 */
-function setCameraPosition() {
-	if (GLOBAL.Camera == null) {
-		return;
-	}
-	
-	// 경위도, 고도 좌표 값 받아오기
-	var longitude = parseFloat(document.getElementById("longitude").value);
-	var latitude = parseFloat(document.getElementById("latitude").value);
-	var altitude = parseFloat(document.getElementById("altitude").value);
+/* POI 객체 생성 */
+function createPOI(_position, _textOptions) {
 
-	let Graph = createGraph(longitude, latitude + 0.01, altitude);
-	GLOBAL.layer.addObject(Graph, 0);
-	if (isNaN(longitude) || isNaN(latitude) || isNaN(altitude)) {
-		return;
+	// POI 생성
+	let point = Module.createPoint("TEXT_POI");
+	point.setPosition(_position);
+
+	let canvas = document.createElement("canvas");
+	let ctx = canvas.getContext("2d");
+	let boardImage = createBoardImage(ctx, _textOptions);
+	point.setImage(boardImage.data, boardImage.width, boardImage.height);
+
+	return point;
+}
+
+/* 캔버스로 POI 이미지 그리기 */
+function createBoardImage(_ctx, _textOptions) {
+
+	// 기본 폰트 설정
+	let fontname, fontsize, linewidth;
+
+	fontname = _textOptions.font;
+	fontsize = _textOptions.fontSize;
+	linewidth = _textOptions.outlineWidth;
+
+	// font 설정 옵션
+	_ctx.font = fontsize + "px " + fontname;	// 크기 및 폰트 
+
+	// 길이 반환
+	let strlist = _textOptions.text.split("\n");
+	let width = 0;
+	let linecount = 0;
+
+	// 이미지 width와 높이 설정
+	for (let item of strlist) {
+		let w = _ctx.measureText(item).width
+		if (w > width) width = w;
+		linecount++;
 	}
 
-	// 카메라 이동 실행
-	GLOBAL.Camera.setTilt(30.0);
-	GLOBAL.Camera.setLocation(new Module.JSVector3D(longitude, latitude, altitude));
+	_ctx.fillStyle = _textOptions.backgroundColor;		// 백그라운드 
+
+	var rectWidth = width + _textOptions.fontSize;
+	var rectHeight = _textOptions.fontSize * (linecount + 1);
+
+	_ctx.fillRect(0, 0, width + _textOptions.fontSize, _textOptions.fontSize * (linecount + 1));
+	_ctx.strokeRect(0, 0, width + _textOptions.fontSize, _textOptions.fontSize * (linecount + 1));
+
+	_ctx.fillStyle = _textOptions.fontColor;
+	_ctx.strokeStyle = _textOptions.outlineColor;
+	_ctx.lineWidth = _textOptions.linewidth;
+	_ctx.textBaseline = "middle";
+	_ctx.textAlign = "center";
+
+	linecount = 1;
+
+	for (let item of strlist) {
+		_ctx.strokeText(item, (width + _textOptions.fontSize) * 0.5, _textOptions.fontSize * linecount);
+		_ctx.fillText(item, (width + _textOptions.fontSize) * 0.5, _textOptions.fontSize * linecount);
+		linecount++;
+	}
+
+	return {
+		width: rectWidth,
+		height: rectHeight,
+		data: _ctx.getImageData(0, 0, rectWidth, rectHeight).data,
+	};
 }
 
 /*********************************************************
@@ -278,7 +414,7 @@ function setCameraPosition() {
  * 파일은 asm.js파일, html.mem파일, js 파일 순으로 적용합니다.
  *********************************************************/
 
-; (function () {
+(function () {
 
 	var tm = (new Date()).getTime();	// 캐싱 방지
 
@@ -320,7 +456,6 @@ function setCameraPosition() {
 	xhr.send(null);
 
 })();
-
 
 /*********************************************************
  *	엔진파일 로드 후 Module 객체가 생성되며,
