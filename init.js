@@ -42,7 +42,7 @@ async function init() {
 	// point 요브젝트 생성
 	let position = new Module.JSVector3D(129.12263821366713 - 0.0055, 35.178739294057365 + 0.011, 300);
 	GLOBAL.poi = createPOI(position, {
-		text: "지역별\n인구 및 IT 종사자 추이\n2016 ~ 2020\n제작 : 김경연",
+		text: "지역별\n인구 및 IT 종사자 추이\n2016 ~ 2020\n제작 : 김경연\n자료 출처 : 통계청",
 		font: "Consolas",
 		fontSize: 20,
 		fontColor: "rgba(0, 0, 0, 1.0)",
@@ -224,7 +224,7 @@ function setCameraPosition() {
 	GLOBAL.graphLayer.addObject(Graph, 0);
 	let position = new Module.JSVector3D(longitude - 0.0055, latitude + 0.011, 300);
 	GLOBAL.poi = createPOI(position, {
-		text: "지역별\n인구 및 IT 종사자 추이\n2016 ~ 2020\n제작 : 김경연",
+		text: "지역별\n인구 및 IT 종사자 추이\n2016 ~ 2020\n제작 : 김경연\n자료 출처 : 통계청",
 		font: "Consolas",
 		fontSize: 20,
 		fontColor: "rgba(0, 0, 0, 1.0)",
