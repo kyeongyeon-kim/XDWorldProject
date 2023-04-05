@@ -1,6 +1,6 @@
 # XD월드를 활용한 렌더링 및 데이터 시각화
 <br>
-<h2><a href="http://fgszhufdz.cafe24.com/">💌 보러가기</a></h2><br><br>
+<h2><a href="http://fgszhufdz.cafe24.com/">🌎︎ 보러가기</a></h2><br><br>
 <strong>👩🏻‍💻 팀구성</strong>
 - 개인 프로젝트<br><br>
 
