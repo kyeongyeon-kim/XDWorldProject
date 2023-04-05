@@ -137,8 +137,8 @@ function createGraph(longitude, latitude) {
 	var graph = Module.createBarGraph("Graph");
 
 	// 범례 추가
-	graph.insertLegend("Legend1", `Population(${GLOBAL.region})`, new Module.JSColor(200, 255, 255, 255));
-	graph.insertLegend("Legend2", "IT 분야 종사자수", new Module.JSColor(200, 255, 255, 0));
+	graph.insertLegend("Legend1", "                         " + `Population(${GLOBAL.region})`, new Module.JSColor(200, 255, 255, 255));
+	graph.insertLegend("Legend2", "                    IT 분야 종사자수", new Module.JSColor(200, 255, 255, 0));
 
 	/* 데이터 추가 */
 	// 데이터 셋 리스트 (데이터 순서는 범례 추가 순서를 따르며 데이터와 범례는 1:1 대응)
