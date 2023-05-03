@@ -61,8 +61,8 @@ async function getAccessToken() {
 		type: 'GET',
 		url: 'https://sgisapi.kostat.go.kr/OpenAPI3/auth/authentication.json',
 		data: {
-			consumer_key: 'b2edafe7152a484a89a8',
-			consumer_secret: 'a1be9e0165914152b296',
+			consumer_key: 'a6bb49b46ed941c9a1cf',
+			consumer_secret: '8f3731c62649479a8936',
 		},
 		success: function (data) {
 			var accessToken = data.result.accessToken;
